@@ -1,4 +1,6 @@
 // @ts-check
+
+const http = require('http');
 const { createApi } = require('unsplash-js');
 const { default: fetch } = require('node-fetch');
 
@@ -26,9 +28,18 @@ async function searchImage(query) {
     }
 }
 
-async function main() {
-    const result = await searchImage('mountain')
-    console.log(result);
-}
+const server = http.createServer((req, res) => {
+    async function main() {
+        const result = await searchImage('mountain');
+        const response = await fetch(result.url);
+        response.body.pipe(res);
+    }
 
-main();
+    main();
+})
+
+const PORT = 4000;
+
+server.listen(PORT, () => {
+    console.log(`The server is listening at port ${PORT}`);
+})
