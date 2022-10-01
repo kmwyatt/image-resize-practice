@@ -8,6 +8,7 @@ const { default: fetch } = require('node-fetch');
 const sharp = require('sharp');
 const { pipeline } = require('stream');
 const { promisify } = require('util');
+const { default: imageSize } = require('image-size');
 
 const unsplash = createApi({
     accessKey: 'sG81mTKqGJJUnhtkyZL2DJuBWRasksPmKBHLdovab9c',
@@ -57,8 +58,10 @@ async function getCachedOrSearchedImage(query) {
         response.body,
         fs.createWriteStream(imageFilePath),
     );
+    const size = imageSize(imageFilePath);
+
     return {
-        message: `Returning new image: ${query}`,
+        message: `Returning new image: ${query}, width: ${size.width}, height: ${size.height}`,
         stream: fs.createReadStream(imageFilePath),
     };
 }
