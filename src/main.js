@@ -64,7 +64,14 @@ async function getCachedOrSearchedImage(query) {
 }
 
 function convertURLToQueryKeyword(url) {
-    return url.slice(1);
+    const urlObj = new URL(url, 'http://localhost:4000');
+    const widthStr = urlObj.searchParams.get('width');
+    const width = widthStr ? parseInt(widthStr, 10) : 400;
+
+    return {
+        query: urlObj.pathname.slice(1),
+        width,
+    };
 }
 
 const server = http.createServer((req, res) => {
@@ -75,17 +82,18 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        const query = convertURLToQueryKeyword(req.url);
-        const result = await getCachedOrSearchedImage(query);
-        if (!result) {
+        const { query, width } = convertURLToQueryKeyword(req.url);
+
+        if (query === 'favicon.ico') {
             return;
         }
 
-        const { message, stream } = result;
-
         try {
+            const { message, stream } = await getCachedOrSearchedImage(query);
+
             console.log(message);
-            stream.pipe(res);
+
+            await promisify(pipeline)(stream, sharp().resize(width).png(), res);
         } catch {
             res.statusCode(400);
             res.end();
