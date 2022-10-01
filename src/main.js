@@ -63,14 +63,21 @@ async function getCachedOrSearchedImage(query) {
     };
 }
 
-function convertURLToQueryKeyword(url) {
+function convertURLToImageInfo(url) {
     const urlObj = new URL(url, 'http://localhost:4000');
-    const widthStr = urlObj.searchParams.get('width');
-    const width = widthStr ? parseInt(widthStr, 10) : 400;
+
+    function getSearchParam(name, defaultValue) {
+        const str = urlObj.searchParams.get(name);
+        return str ? parseInt(str, 10) : defaultValue;
+    }
+
+    const width = getSearchParam('width', 400);
+    const height = getSearchParam('height', 400);
 
     return {
         query: urlObj.pathname.slice(1),
         width,
+        height,
     };
 }
 
@@ -82,7 +89,7 @@ const server = http.createServer((req, res) => {
             return;
         }
 
-        const { query, width } = convertURLToQueryKeyword(req.url);
+        const { query, width, height } = convertURLToImageInfo(req.url);
 
         if (query === 'favicon.ico') {
             return;
@@ -93,7 +100,16 @@ const server = http.createServer((req, res) => {
 
             console.log(message);
 
-            await promisify(pipeline)(stream, sharp().resize(width).png(), res);
+            await promisify(pipeline)(
+                stream,
+                sharp()
+                    .resize(width, height, {
+                        fit: 'contain',
+                        background: '#777',
+                    })
+                    .png(),
+                res,
+            );
         } catch {
             res.statusCode(400);
             res.end();
